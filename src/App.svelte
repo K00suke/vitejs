@@ -8,7 +8,10 @@
 
     function shuffle(){
         for(let i = 0; i < L*L; i++){
-            gems[i] = Math.floor(Math.random() * maxColor)
+            gems[i] = {
+                color: Math.floor(Math.random() * maxColor),
+                isSelected: false
+            }
         }
     }
 </script>

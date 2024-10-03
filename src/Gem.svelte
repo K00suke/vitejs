@@ -6,9 +6,14 @@
     import yellow from "./assets/yellow.png";
     import rainbow from "./assets/rainbow.png";
     import shuffle from "./assets/shuffle.png";
-    export let color = 0;
+
+    export let color;
+    export let isSelected;
     const images = [rainbow, red, blue, green, orange, yellow, shuffle];
 </script>
-<button class="border-gray-300 border-2 rounded-md">
+<button class="border-gray-200 border-2 rounded-md"
+    class:border-orange-500={isSelected}
+    class:hover:border-gray-400={!isSelected}
+    on:click={() => isSelected = !isSelected}>
     <img src={images[color]}/>
 </button>
