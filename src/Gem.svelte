@@ -14,6 +14,6 @@
 <button class="border-gray-200 border-2 rounded-md"
     class:border-orange-500={isSelected}
     class:hover:border-gray-400={!isSelected}
-    on:click={() => isSelected = !isSelected}>
+    on:click>
     <img src={images[color]}/>
 </button>

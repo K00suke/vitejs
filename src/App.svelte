@@ -1,18 +1,53 @@
 <script>
     import Board from "./Board.svelte";
+
     export let gems = [];
+
     const L = 9;
     const maxColor = 7;
 
-    shuffle();
+    let debugMsg = "デバッグメッセージ";
 
-    function shuffle(){
-        for(let i = 0; i < L*L; i++){
-            gems[i] = {
-                color: Math.floor(Math.random() * maxColor),
-                isSelected: false
+    shuffle(0,L,0,L);
+
+    function shuffle(left, right, top, bottom){
+        for(let x = left; x <= right; x++){
+            for(let y = top; y <= bottom; y++){
+                const i = xy2i(x,y);
+                gems[i] = {
+                    color: Math.floor(Math.random() * maxColor),
+                    isSelected: false
+                };
             }
         }
+    }
+
+    function rectangleSelected(event){
+        const [x1, y1] = i2xy(event.detail.i1);
+        const [x2, y2] = i2xy(event.detail.i2);
+        const left = Math.min(x1, x2);
+        const right = Math.max(x1, x2);
+        const top = Math.min(y1, y2);
+        const bottom = Math.max(y1, y2);
+        if(right - left + 1 > 1 && bottom - top + 1 > 1){
+            const count = (right - left + 1) * (bottom - top + 1);
+            shuffle(left, right, top, bottom);
+            debugMsg = `${count}個をシャッフル`
+        }
+        else{
+            debugMsg = "消せない...";
+        }
+
+    }
+
+    function i2xy(i){
+        if(i<0 || i>=L*L) return [-1,-1];
+        else return [i%L, Math.floor(i / L)];
+    }
+
+    function xy2i(x, y){
+        if(x < 0 || y < 0 || x >= L || y >= L) return -1;
+        else return x + y*L;
     }
 </script>
 <div class="bg-gradient-to-br from-orange-200 to-orange-400 h-svh w-svw justify-center">
@@ -30,8 +65,8 @@
         </div>
         
         <!--盤面-->
-        <div class="bg-gray-100 aspect-square mx-4 border-4 rounded-2xl border-orange-50">
-            <Board bind:gems/>
+        <div class="bg-gray-300 aspect-square">
+            <Board bind:gems on:rectangleSelected={rectangleSelected}/>
         </div>
 
         <!--残り時間-->
@@ -40,6 +75,8 @@
         </div>
 
         <!--ヒントの表示スペース-->
-        <div class="text-center text-white font-extrabold text-2xl">ヒントの表示スペース</div>
+        <div class="text-center text-white font-extrabold text-2xl">
+            {debugMsg}
+        </div>
     </div>
 </div>
