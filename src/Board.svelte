@@ -14,12 +14,18 @@
         else if(selected === -1){
             gems[i].isSelected = true;
             selected = i;
-
+            if(gems[selected].color === 6){
+                gems[selected].isSelected = false;
+                selected = -1;
+                dispatch("forceShuffle", {});
+                return;
+            }
         }
         else{
             gems[selected].isSelected = false;
             gems[i].isSelected = true;
             dispatch("rectangleSelected", {i1: selected, i2: i});
+            gems[i].isSelected = false;
             selected = -1;
         }
     }

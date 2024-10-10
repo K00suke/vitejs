@@ -22,6 +22,11 @@
         }
     }
 
+    function forceShuffle(event){
+        debugMsg = "強制シャッフル!";
+        shuffle(0,L,0,L);
+    }
+
     function rectangleSelected(event){
         const [x1, y1] = i2xy(event.detail.i1);
         const [x2, y2] = i2xy(event.detail.i2);
@@ -29,7 +34,8 @@
         const right = Math.max(x1, x2);
         const top = Math.min(y1, y2);
         const bottom = Math.max(y1, y2);
-        if(right - left + 1 > 1 && bottom - top + 1 > 1){
+        if(x1 === x2 || y1 === y2) return;
+        if(isCorrect(left, right, top, bottom)){
             const count = (right - left + 1) * (bottom - top + 1);
             shuffle(left, right, top, bottom);
             debugMsg = `${count}個をシャッフル`
@@ -38,6 +44,19 @@
             debugMsg = "消せない...";
         }
 
+    }
+
+    function isCorrect(l,r,t,b){
+        const c1 = gems[xy2i(l,t)].color;
+        const c2 = gems[xy2i(l,b)].color;
+        const c3 = gems[xy2i(r,t)].color;
+        const c4 = gems[xy2i(r,b)].color;
+        console.assert(l<r, "l<rではない", {l, r});
+        console.assert(t<b, "t<bではない", {t, b});
+
+        const corners = new Set([c1, c2, c3, c4]);
+        console.log(corners);
+        return corners.size - Number(corners.has(0)) + 9999999 * Number(corners.has(6)) <= 1;
     }
 
     function i2xy(i){
