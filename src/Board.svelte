@@ -12,12 +12,12 @@
             selected = -1;
         }
         else if(selected === -1){
-            gems[i].isSelected = true;
             selected = i;
+            gems[selected].isSelected = true;
             if(gems[selected].color === 6){
+                dispatch("forceShuffle");
                 gems[selected].isSelected = false;
                 selected = -1;
-                dispatch("forceShuffle", {});
                 return;
             }
         }
