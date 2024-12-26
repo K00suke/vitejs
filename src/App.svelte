@@ -1,21 +1,65 @@
 <script>
-    import Board from "./Board.svelte";
+    import Board from "./Board.svelte";import { onMount } from "svelte";
+    import StartModal from "./StartModal.svelte";
+    import GameoverModal from "./GameoverModal.svelte";
+    import {addScore, getBestScore} from "./supabase.js";
+    let startModal, gameoverModal;
 
     export let gems = [];
 
     const L = 9;
+    const MAX_TIME = 60;
+    let time;
+    let highScore = 1;
 
     const levelDesign = {
         1: {maxColor: 2, levelUp: 1000, shuffleThresh: 17},
         2: {maxColor: 3, levelUp: 20000, shuffleThresh: 26},
         3: {maxColor: 4, levelUp: 300000, shuffleThresh: 31},
-        4: {maxColor: 5, levelUp: 1e256, shuffleThresh: 39}
+        4: {maxColor: 5, levelUp: 4000000, shuffleThresh: 37},
+        5: {maxColor: 5, levelUp: 50000000, shuffleThresh: 43},
+        6: {maxColor: 5, levelUp: 1e256, shuffleThresh: 49}
     }
 
     let gamedata = {score:0, level:1, bestBlow:0, blowCount:0}
     let debugMsg = "デバッグメッセージ";
 
-    shuffle(0,L,0,L,levelDesign[gamedata.level].maxColor);
+    let state = "INITIAL";
+    async function changeState(newState){
+        state = newState;
+        if(state == "START"){
+            shuffle(0, L-1, 0, L-1, 5);
+            gameoverModal.close();
+            highScore = await getBestScore();
+            startModal.showModal();
+        }
+        else if(state == "GAME"){
+            gamedata = {score:0, level:1, bestBlow:0, blowCount:0};
+            debugMsg = "";
+            time = MAX_TIME;
+            shuffle(0, L-1, 0, L-1, levelDesign[gamedata.level].maxColor);
+            startModal.close();
+            timerTick();
+        }
+        else if(state == "END"){
+            await addScore(gamedata.score);
+            gameoverModal.showModal();
+        }
+        else{
+            throw "changeStateのエラー";
+        }
+    }
+    onMount(()=>changeState("START"));
+
+    function timerTick(){
+        time -= 0.1;
+        if(time > 0){
+            setTimeout(timerTick, 1000*0.1);
+        }
+        else{
+            changeState("END");
+        }
+    }
 
     function shuffle(left, right, top, bottom, maxColor){
         for(let x = left; x <= right; x++){
@@ -47,23 +91,36 @@
         const point = calcPoint(area);
         gamedata.bestBlow = Math.max(gamedata.bestBlow, point);
         gamedata.score += point;
+        time += point / 1000;
         if(x1 === x2 || y1 === y2) return;
         if(isCorrect(left, right, top, bottom)){
             const count = (right - left + 1) * (bottom - top + 1);
             shuffle(left, right, top, bottom, levelDesign[gamedata.level].maxColor);
             debugMsg = `${count}個をシャッフル`;
 
+            let i;
             if(right-left === bottom-top){
                 const x = Math.floor(Math.random()*(right-left+1) + left);
                 const y = Math.floor(Math.random()*(bottom-top+1) + top);
-                const i = xy2i(x, y);
+                i = xy2i(x, y);
                 gems[i].color = 0;
             }
-            else if(area >= levelDesign[gamedata.level].shuffleThresh){
-                const x = Math.floor(Math.random()*(right-left+1) + left);
-                const y = Math.floor(Math.random()*(bottom-top+1) + top);
-                const i = xy2i(x, y);
-                gems[i].color = 6;
+            if(area >= levelDesign[gamedata.level].shuffleThresh){
+                let x;
+                let y;
+                function randomi(){
+                    x = Math.floor(Math.random()*(right-left+1) + left);
+                    y = Math.floor(Math.random()*(bottom-top+1) + top);
+                    const k = xy2i(x,y);
+                    if(i === k){
+                        return randomi();
+                    }
+                    else{
+                        return k;
+                    }
+                }
+                const j = randomi();
+                gems[j].color = 6;
             }
 
             if(gamedata.score >= levelDesign[gamedata.level].levelUp){
@@ -91,7 +148,7 @@
                 }
             }
 
-            return area * 2*(rainbow + 1) * Math.pow(2, shuffle + 1) * gamedata.level;
+            return area * 2*(rainbow + 1) * Math.pow(2, shuffle + 1) * Math.pow(gamedata.level,2);
         }
 
     }
@@ -119,8 +176,13 @@
         else return x + y*L;
     }
 </script>
+<StartModal bind:modal={startModal} {highScore} on:click={()=>changeState("GAME")}/>
+<GameoverModal bind:modal={gameoverModal} {...gamedata}  on:click={()=>changeState("START")}/>
+<svelte:head>
+    <title>ょすみん？</title>
+</svelte:head>
 <div class="bg-gradient-to-br from-orange-200 to-orange-400 h-svh w-svw justify-center">
-    <div class="h-svh max-w-xl flex flex-col gap-4 justify-center mx-auto">
+    <div class="h-svh max-w-xl flex flex-col gap-4 justify-center mx-auto p-6">
         <!--レベル表示-->
         <div class="bg-orange-300 border-orange-50 rounded-2xl border-4 p-2 mx-4 flex flex-row justify-around">
             <div class="font-bold text-white text-center w-1/3">れべる</div>
@@ -142,14 +204,15 @@
             />
         </div>
 
-        <!--残り時間-->
-        <div class="bg-gray-400 border-4 rounded-xl h-8 overflow-hidden flex">
-            <div class="bg-orange-400 w-3/4"></div>
+        <!--－残り時間-->
+        <div class="bg-gray-300 border-4 rounded-xl border-orange-50 h-4 overflow-hidden flex">
+            <div class="bg-orange-300 w-1/3" style:width='{time/MAX_TIME*100}%'></div>
         </div>
 
-        <!--ヒントの表示スペース-->
+        <!--ヒントの表示スペース
         <div class="text-center text-white font-extrabold text-2xl">
             {debugMsg}
         </div>
+        -->
     </div>
 </div>
